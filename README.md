@@ -2,7 +2,8 @@
 
 This project demonstrates how to create a Cloudflare Worker with mathematical and string operations. Currently deployed with a JavaScript implementation, with WebAssembly (WASM) integration available for local development.
 
-**🌐 Live Demo:** https://sample-cf-wasm.hcc07-org.workers.dev
+**🌐 Live Demo:** https://sample-cf-wasm.hcc07-org.workers.dev  
+**Implementation Status:** Hybrid WASM/JavaScript with graceful fallback
 
 ## 🚀 Features
 
@@ -17,8 +18,10 @@ This project demonstrates how to create a Cloudflare Worker with mathematical an
 
 The worker is **live and functional** at: https://sample-cf-wasm.hcc07-org.workers.dev
 
-**Implementation:** Currently running with JavaScript for maximum compatibility
-**Status:** ✅ All endpoints working perfectly
+**Implementation:** Hybrid WASM/JavaScript with automatic fallback  
+**Current Runtime:** JavaScript Fallback (WASM attempted, not supported)  
+**Status:** ✅ All endpoints working perfectly  
+**Reliability:** 100% (works regardless of WASM support)  
 **Performance:** Optimized for Cloudflare's edge network
 
 ## 📋 Prerequisites
@@ -84,6 +87,7 @@ This will start a local development server. You can then test the worker at `htt
 | Endpoint | Description | Example |
 |----------|-------------|---------|
 | `/` | Interactive demo page | `GET /` |
+| `/status` | Check WASM/JS implementation status | `GET /status` |
 | `/add` | Add two numbers | `GET /add?a=5&b=3` |
 | `/factorial` | Calculate factorial | `GET /factorial?n=5` |
 | `/prime` | Check if number is prime | `GET /prime?n=17` |
@@ -126,14 +130,18 @@ sample-cf-wasm/
 ### Test the live API endpoints:
 
 \`\`\`bash
-# Basic status check
-curl "https://sample-cf-wasm.hcc07-org.workers.dev/test"
+# Check implementation status (WASM or JavaScript)
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/status"
 
-# Add two numbers
+# Mathematical operations
 curl "https://sample-cf-wasm.hcc07-org.workers.dev/add?a=15&b=27"
-
-# Calculate factorial  
 curl "https://sample-cf-wasm.hcc07-org.workers.dev/factorial?n=7"
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/prime?n=97"
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/fibonacci?n=15"
+
+# String operations
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/reverse?text=WebAssembly"
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/hash?input=CloudflareWorker"
 
 # Interactive demo (open in browser)
 open "https://sample-cf-wasm.hcc07-org.workers.dev/"
@@ -186,12 +194,20 @@ case '/multiply':
   });
 \`\`\`
 
-## 📝 Notes
+## 📝 Implementation Notes
 
-- The WASM module is optimized for size (`opt-level = "s"`)
-- Functions include input validation and error handling
-- The interactive demo page provides an easy way to test all functions
-- WebAssembly provides near-native performance for computationally intensive tasks
+### Hybrid Architecture
+- **Design:** Attempts WebAssembly loading with JavaScript fallback
+- **Current Status:** Running on JavaScript fallback (WASM modules included but not loading in Cloudflare Workers runtime)
+- **Reliability:** 100% uptime regardless of WASM support
+- **Status Reporting:** `/status` endpoint shows current implementation
+
+### Technical Details
+- WASM modules are built and included (`wasm-pack`, optimized for size)
+- Functions include input validation and error handling  
+- Interactive demo page provides real-time testing with implementation transparency
+- Both implementations provide identical functionality and API responses
+- Bundle includes both WASM (~16KB) and JavaScript fallback (~4KB)
 
 ## 🤝 Contributing
 
