@@ -16,7 +16,7 @@ Before you start, make sure you have the following installed:
 
 1. **Node.js** (v16 or later)
 2. **Rust** and **Cargo**
-3. **wasm-pack** - Install with: `curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh`
+3. **wasm-pack** - Install with: `brew install wasm-pack` (macOS) or `curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh`
 4. **Wrangler CLI** - Cloudflare's CLI tool
 
 ## 🛠️ Setup
@@ -28,6 +28,10 @@ Before you start, make sure you have the following installed:
 
 2. **Install wasm-pack** (if not already installed):
    \`\`\`bash
+   # On macOS with Homebrew (recommended)
+   brew install wasm-pack
+   
+   # Alternative: Direct installation
    curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
    \`\`\`
 
