@@ -1,20 +1,71 @@
-import init, {
-  add,
-  factorial,
-  is_prime,
-  fibonacci,
-  reverse_string,
-  simple_hash
-} from './wasm-pkg/cf_wasm_lib.js';
-import wasmModule from './wasm-pkg/cf_wasm_lib_bg.wasm';
+// Hybrid WASM/JavaScript implementation
+let wasmFunctions = null;
+let wasmAvailable = false;
 
-// Initialize the WASM module
-let wasmInitialized = false;
+// JavaScript fallback implementations
+const jsFallback = {
+  add: (a, b) => a + b,
+  factorial: (n) => {
+    if (n === 0) return 1n;
+    let result = 1n;
+    for (let i = 2n; i <= BigInt(n); i++) {
+      result *= i;
+    }
+    return result;
+  },
+  is_prime: (n) => {
+    if (n < 2) return false;
+    for (let i = 2; i <= Math.sqrt(n); i++) {
+      if (n % i === 0) return false;
+    }
+    return true;
+  },
+  fibonacci: (n) => {
+    if (n === 0) return 0n;
+    if (n === 1) return 1n;
+    let a = 0n, b = 1n;
+    for (let i = 2; i <= n; i++) {
+      const temp = a + b;
+      a = b;
+      b = temp;
+    }
+    return b;
+  },
+  reverse_string: (str) => str.split('').reverse().join(''),
+  simple_hash: (str) => {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+  }
+};
 
 async function initWasm() {
-  if (!wasmInitialized) {
-    await init({ module: wasmModule });
-    wasmInitialized = true;
+  if (wasmAvailable) return;
+  
+  try {
+    // Try to load WASM module
+    const wasmModule = await import('./wasm-pkg/cf_wasm_lib_bg.wasm');
+    const wasmInit = await import('./wasm-pkg/cf_wasm_lib.js');
+    
+    await wasmInit.default(wasmModule.default);
+    
+    wasmFunctions = {
+      add: wasmInit.add,
+      factorial: wasmInit.factorial,
+      is_prime: wasmInit.is_prime,
+      fibonacci: wasmInit.fibonacci,
+      reverse_string: wasmInit.reverse_string,
+      simple_hash: wasmInit.simple_hash
+    };
+    
+    wasmAvailable = true;
+    console.log('WASM modules loaded successfully');
+  } catch (error) {
+    console.warn('WASM loading failed, using JavaScript fallback:', error.message);
+    wasmFunctions = jsFallback;
+    wasmAvailable = false;
   }
 }
 
@@ -33,14 +84,25 @@ export default {
           headers: { 'Content-Type': 'text/html' }
         });
 
+      case '/status':
+        return new Response(JSON.stringify({ 
+          status: 'ok',
+          wasm_available: wasmAvailable,
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback',
+          timestamp: new Date().toISOString()
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
       case '/add':
         const a = parseInt(url.searchParams.get('a') || '0');
         const b = parseInt(url.searchParams.get('b') || '0');
-        const sum = add(a, b);
+        const sum = wasmFunctions.add(a, b);
         return new Response(JSON.stringify({ 
           operation: 'add', 
           inputs: { a, b }, 
-          result: sum 
+          result: sum,
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
@@ -55,22 +117,24 @@ export default {
             headers: { 'Content-Type': 'application/json' }
           });
         }
-        const fact = factorial(n);
+        const fact = wasmFunctions.factorial(n);
         return new Response(JSON.stringify({ 
           operation: 'factorial', 
           input: n, 
-          result: fact.toString() 
+          result: fact.toString(),
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
 
       case '/prime':
         const num = parseInt(url.searchParams.get('n') || '17');
-        const isPrime = is_prime(num);
+        const isPrime = wasmFunctions.is_prime(num);
         return new Response(JSON.stringify({ 
           operation: 'is_prime', 
           input: num, 
-          result: isPrime 
+          result: isPrime,
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
@@ -85,33 +149,36 @@ export default {
             headers: { 'Content-Type': 'application/json' }
           });
         }
-        const fibResult = fibonacci(fibN);
+        const fibResult = wasmFunctions.fibonacci(fibN);
         return new Response(JSON.stringify({ 
           operation: 'fibonacci', 
           input: fibN, 
-          result: fibResult.toString() 
+          result: fibResult.toString(),
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
 
       case '/reverse':
         const text = url.searchParams.get('text') || 'Hello World';
-        const reversed = reverse_string(text);
+        const reversed = wasmFunctions.reverse_string(text);
         return new Response(JSON.stringify({ 
           operation: 'reverse_string', 
           input: text, 
-          result: reversed 
+          result: reversed,
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
 
       case '/hash':
         const input = url.searchParams.get('input') || 'cloudflare';
-        const hash = simple_hash(input);
+        const hash = wasmFunctions.simple_hash(input);
         return new Response(JSON.stringify({ 
           operation: 'simple_hash', 
           input: input, 
-          result: hash 
+          result: hash,
+          implementation: wasmAvailable ? 'WebAssembly (Rust)' : 'JavaScript Fallback' 
         }), {
           headers: { 'Content-Type': 'application/json' }
         });
@@ -139,12 +206,13 @@ function getHomePage() {
     </style>
 </head>
 <body>
-    <h1>🚀 Cloudflare WebAssembly Worker Demo</h1>
-    <p>This worker demonstrates WebAssembly integration with various mathematical and string operations.</p>
+    <h1>🚀 Cloudflare Hybrid WASM/JS Worker Demo</h1>
+    <p>This worker attempts to use WebAssembly (Rust) for high-performance computations, with JavaScript fallback for maximum compatibility.</p>
     
     <div class="endpoint">
         <h3>📊 Available Endpoints:</h3>
         <ul>
+            <li><code>/status</code> - Check WASM/JS implementation status</li>
             <li><code>/add?a=5&b=3</code> - Add two numbers</li>
             <li><code>/factorial?n=5</code> - Calculate factorial</li>
             <li><code>/prime?n=17</code> - Check if number is prime</li>
@@ -156,6 +224,7 @@ function getHomePage() {
     
     <div class="endpoint">
         <h3>🧪 Try the demos:</h3>
+        <button class="demo-button" onclick="testEndpoint('/status')">Check Status</button>
         <button class="demo-button" onclick="testEndpoint('/add?a=15&b=27')">Add 15 + 27</button>
         <button class="demo-button" onclick="testEndpoint('/factorial?n=7')">Factorial of 7</button>
         <button class="demo-button" onclick="testEndpoint('/prime?n=97')">Is 97 prime?</button>
