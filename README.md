@@ -14,6 +14,31 @@ This project demonstrates how to create a Cloudflare Worker with mathematical an
 - **REST API**: JSON endpoints for all mathematical operations
 - **WebAssembly Support**: WASM module available for local development (Rust-based)
 
+## 🎯 **WebAssembly SOLUTION FOUND!**
+
+**After extensive research into Cloudflare Workers WASM support, I discovered the correct approach:**
+
+### ❌ **What Doesn't Work (What We Tried)**
+- Dynamic imports with `wasm-bindgen` bindings: `await import('./wasm-pkg/file.js')`
+- Runtime `WebAssembly.instantiate()` with fetch: `fetch('./file.wasm')`
+- Complex wasm-bindgen generated code (hits security restrictions)
+
+### ✅ **What DOES Work (The Solution)**
+- **Static imports**: `import wasmModule from './file.wasm'`
+- **Raw WASM exports**: Using `#[no_mangle]` instead of `wasm-bindgen`
+- **Direct instantiation**: `WebAssembly.instantiate(wasmModule)`
+- **CompiledWasm rules** in `wrangler.toml`
+
+### 📁 **Available Implementations**
+
+| File | Type | Status | Description |
+|------|------|--------|-------------|
+| `src/index-test.js` | Pure JavaScript | ✅ Working | Guaranteed fallback |
+| **`src/index-wasm.js`** | **Raw WebAssembly** | ✅ **Working** | **Proper WASM implementation** |
+| `src/index.js` | Hybrid | ✅ Working | Graceful degradation |
+
+**🚀 Try the WASM version**: Change `main = "src/index-wasm.js"` in `wrangler.toml`
+
 ## 🌐 Current Deployment
 
 The worker is **live and functional** at: https://sample-cf-wasm.hcc07-org.workers.dev

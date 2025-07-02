@@ -1,28 +1,15 @@
-use wasm_bindgen::prelude::*;
-
-// Import the `console.log` function from the `console` object
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
-// A macro to provide `println!(..)`-style syntax for `console.log` logging.
-macro_rules! console_log {
-    ( $( $t:tt )* ) => {
-        log(&format!( $( $t )* ))
-    }
-}
+// Basic WebAssembly exports for Cloudflare Workers
+// Using raw exports instead of wasm-bindgen for better static import compatibility
 
 // A simple function that adds two numbers
-#[wasm_bindgen]
-pub fn add(a: i32, b: i32) -> i32 {
+#[no_mangle]
+pub extern "C" fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 
 // A function that calculates the factorial of a number
-#[wasm_bindgen]
-pub fn factorial(n: u32) -> u64 {
+#[no_mangle]
+pub extern "C" fn factorial(n: u32) -> u64 {
     if n == 0 {
         1
     } else {
@@ -30,24 +17,26 @@ pub fn factorial(n: u32) -> u64 {
     }
 }
 
-// A function that checks if a number is prime
-#[wasm_bindgen]
-pub fn is_prime(n: u32) -> bool {
-    if n < 2 {
-        return false;
-    }
+// A function that checks if a number is prime (returns 1 for true, 0 for false)
+#[no_mangle]
+pub extern "C" fn is_prime(n: u32) -> i32 {
+    let result = if n < 2 {
+        false
+    } else if n == 2 {
+        true
+    } else if n % 2 == 0 {
+        false
+    } else {
+        let sqrt_n = (n as f64).sqrt() as u32;
+        !(3..=sqrt_n).step_by(2).any(|i| n % i == 0)
+    };
     
-    for i in 2..=(n as f64).sqrt() as u32 {
-        if n % i == 0 {
-            return false;
-        }
-    }
-    true
+    if result { 1 } else { 0 }
 }
 
 // A function that returns the Fibonacci number at position n
-#[wasm_bindgen]
-pub fn fibonacci(n: u32) -> u64 {
+#[no_mangle]
+pub extern "C" fn fibonacci(n: u32) -> u64 {
     match n {
         0 => 0,
         1 => 1,
@@ -64,24 +53,13 @@ pub fn fibonacci(n: u32) -> u64 {
     }
 }
 
-// A function that processes a string (reverses it)
-#[wasm_bindgen]
-pub fn reverse_string(input: &str) -> String {
-    input.chars().rev().collect()
-}
-
-// A function that calculates hash (simple djb2 hash)
-#[wasm_bindgen]
-pub fn simple_hash(input: &str) -> u32 {
+// Simple hash function that works with raw memory
+#[no_mangle]
+pub extern "C" fn simple_hash_bytes(ptr: *const u8, len: usize) -> u32 {
+    let input = unsafe { std::slice::from_raw_parts(ptr, len) };
     let mut hash: u32 = 5381;
-    for byte in input.bytes() {
+    for &byte in input {
         hash = hash.wrapping_mul(33).wrapping_add(byte as u32);
     }
     hash
-}
-
-// Called when the wasm module is instantiated
-#[wasm_bindgen(start)]
-pub fn main() {
-    console_log!("WebAssembly module loaded successfully!");
 } 

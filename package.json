@@ -4,12 +4,12 @@
   "description": "Cloudflare WebAssembly Worker Demo",
   "main": "src/index.js",
   "scripts": {
-    "build": "npm run build:wasm && npm run build:worker",
-    "build:wasm": "cd wasm && wasm-pack build --target web --out-dir ../src/wasm-pkg",
-    "build:worker": "wrangler build",
+    "build": "npm run build:wasm",
+    "build:wasm": "mkdir -p src/wasm-pkg && cd wasm && cargo build --target wasm32-unknown-unknown --release && cp target/wasm32-unknown-unknown/release/cf_wasm_lib.wasm ../src/wasm-pkg/cf_wasm_lib_bg.wasm",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "preview": "wrangler preview"
+    "preview": "wrangler preview",
+    "clean": "rm -rf src/wasm-pkg"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"
