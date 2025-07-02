@@ -13,7 +13,7 @@ let wasmInitialized = false;
 
 async function initWasm() {
   if (!wasmInitialized) {
-    await init(wasmModule);
+    await init({ module: wasmModule });
     wasmInitialized = true;
   }
 }
