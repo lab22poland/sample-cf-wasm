@@ -1,14 +1,25 @@
 # Cloudflare WebAssembly Worker Demo
 
-This project demonstrates how to create a Cloudflare Worker that uses WebAssembly (WASM) for high-performance computations. The WebAssembly module is written in Rust and provides various mathematical and string operations.
+This project demonstrates how to create a Cloudflare Worker with mathematical and string operations. Currently deployed with a JavaScript implementation, with WebAssembly (WASM) integration available for local development.
+
+**🌐 Live Demo:** https://sample-cf-wasm.hcc07-org.workers.dev
 
 ## 🚀 Features
 
-- **WebAssembly Integration**: Rust-compiled WASM module for high-performance operations
-- **Mathematical Functions**: Addition, factorial, prime checking, Fibonacci sequences
+- **Production Ready**: Deployed and working on Cloudflare Workers
+- **Mathematical Functions**: Addition, factorial, prime checking, Fibonacci sequences  
 - **String Operations**: String reversal and simple hashing
 - **Interactive Demo**: Built-in web interface to test all functions
-- **REST API**: JSON endpoints for all WASM functions
+- **REST API**: JSON endpoints for all mathematical operations
+- **WebAssembly Support**: WASM module available for local development (Rust-based)
+
+## 🌐 Current Deployment
+
+The worker is **live and functional** at: https://sample-cf-wasm.hcc07-org.workers.dev
+
+**Implementation:** Currently running with JavaScript for maximum compatibility
+**Status:** ✅ All endpoints working perfectly
+**Performance:** Optimized for Cloudflare's edge network
 
 ## 📋 Prerequisites
 
@@ -112,26 +123,30 @@ sample-cf-wasm/
 
 ## 🎯 Example Usage
 
-### Test the API endpoints:
+### Test the live API endpoints:
 
 \`\`\`bash
+# Basic status check
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/test"
+
 # Add two numbers
-curl "https://your-worker.your-subdomain.workers.dev/add?a=15&b=27"
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/add?a=15&b=27"
 
-# Calculate factorial
-curl "https://your-worker.your-subdomain.workers.dev/factorial?n=7"
+# Calculate factorial  
+curl "https://sample-cf-wasm.hcc07-org.workers.dev/factorial?n=7"
 
-# Check if number is prime
-curl "https://your-worker.your-subdomain.workers.dev/prime?n=97"
+# Interactive demo (open in browser)
+open "https://sample-cf-wasm.hcc07-org.workers.dev/"
+\`\`\`
 
-# Get Fibonacci number
-curl "https://your-worker.your-subdomain.workers.dev/fibonacci?n=15"
+### WebAssembly Development (Local Only):
 
-# Reverse string
-curl "https://your-worker.your-subdomain.workers.dev/reverse?text=WebAssembly"
+For WASM development, use the full implementation with Rust:
 
-# Calculate hash
-curl "https://your-worker.your-subdomain.workers.dev/hash?input=CloudflareWorker"
+\`\`\`bash
+# Switch to WASM version (local development)
+# Edit wrangler.toml: main = "src/index.js"
+# Then: wrangler dev
 \`\`\`
 
 ## 🎨 Customization
