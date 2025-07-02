@@ -1,9 +1,6 @@
-// ✅ WORKING WebAssembly Implementation for Cloudflare Workers
-// Uses static imports - the documented working pattern
-
+// Pure WebAssembly Worker - Minimal JavaScript wrapper
 import wasmModule from './wasm-pkg/cf_wasm_lib_bg.wasm';
 
-// Simple WASM wrapper functions that call into the WASM module directly
 let wasmInstance = null;
 
 async function initWasm() {
@@ -11,15 +8,6 @@ async function initWasm() {
     wasmInstance = await WebAssembly.instantiate(wasmModule);
   }
   return wasmInstance;
-}
-
-// Helper functions to call WASM exports with proper type conversion
-function callWasmFunction(instance, funcName, ...args) {
-  const func = instance.exports[funcName];
-  if (!func) {
-    throw new Error(`WASM function ${funcName} not found`);
-  }
-  return func(...args);
 }
 
 export default {
@@ -38,8 +26,7 @@ export default {
         case '/status':
           return new Response(JSON.stringify({ 
             status: 'ok',
-            wasm_available: true,
-            implementation: 'WebAssembly (Static Import)',
+            implementation: 'Pure WebAssembly',
             timestamp: new Date().toISOString(),
             wasm_functions: Object.keys(instance.exports).filter(key => typeof instance.exports[key] === 'function')
           }), {
@@ -49,12 +36,11 @@ export default {
         case '/add':
           const a = parseInt(url.searchParams.get('a') || '0');
           const b = parseInt(url.searchParams.get('b') || '0');
-          const sum = callWasmFunction(instance, 'add', a, b);
+          const sum = instance.exports.add(a, b);
           return new Response(JSON.stringify({ 
             operation: 'add', 
             inputs: { a, b }, 
-            result: sum,
-            implementation: 'WebAssembly (Static Import)' 
+            result: sum
           }), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -69,24 +55,22 @@ export default {
               headers: { 'Content-Type': 'application/json' }
             });
           }
-          const fact = callWasmFunction(instance, 'factorial', n);
+          const fact = instance.exports.factorial(n);
           return new Response(JSON.stringify({ 
             operation: 'factorial', 
             input: n, 
-            result: fact.toString(),
-            implementation: 'WebAssembly (Static Import)' 
+            result: fact.toString()
           }), {
             headers: { 'Content-Type': 'application/json' }
           });
 
         case '/prime':
           const num = parseInt(url.searchParams.get('n') || '17');
-          const isPrime = callWasmFunction(instance, 'is_prime', num);
+          const isPrime = instance.exports.is_prime(num);
           return new Response(JSON.stringify({ 
             operation: 'is_prime', 
             input: num, 
-            result: !!isPrime, // Convert to boolean
-            implementation: 'WebAssembly (Static Import)' 
+            result: !!isPrime
           }), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -101,56 +85,31 @@ export default {
               headers: { 'Content-Type': 'application/json' }
             });
           }
-          const fibResult = callWasmFunction(instance, 'fibonacci', fibN);
+          const fibResult = instance.exports.fibonacci(fibN);
           return new Response(JSON.stringify({ 
             operation: 'fibonacci', 
             input: fibN, 
-            result: fibResult.toString(),
-            implementation: 'WebAssembly (Static Import)' 
+            result: fibResult.toString()
           }), {
             headers: { 'Content-Type': 'application/json' }
           });
 
-        case '/reverse':
-          const text = url.searchParams.get('text') || 'Hello World';
-          
-          // For string operations, we need to handle memory manually
-          // This is a simplified approach - in practice you'd want more robust memory management
+        case '/hash':
+          const input = url.searchParams.get('input') || 'cloudflare';
           const encoder = new TextEncoder();
-          const decoder = new TextDecoder();
-          const textBytes = encoder.encode(text);
+          const textBytes = encoder.encode(input);
           
-          // Allocate memory in WASM
-          const ptr = callWasmFunction(instance, 'alloc', textBytes.length);
-          if (!ptr) {
-            return new Response(JSON.stringify({ error: 'Failed to allocate WASM memory' }), {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-          
-          // Copy string to WASM memory
+          // Allocate memory and copy string data
           const memory = instance.exports.memory;
+          const ptr = textBytes.length;
           const memoryArray = new Uint8Array(memory.buffer);
-          memoryArray.set(textBytes, ptr);
+          memoryArray.set(textBytes, 0);
           
-          // Call reverse function
-          const reversedPtr = callWasmFunction(instance, 'reverse_string_ptr', ptr, textBytes.length);
-          const reversedLength = callWasmFunction(instance, 'get_string_length', reversedPtr);
-          
-          // Read result from WASM memory
-          const reversedBytes = new Uint8Array(memory.buffer, reversedPtr, reversedLength);
-          const reversed = decoder.decode(reversedBytes);
-          
-          // Clean up memory
-          callWasmFunction(instance, 'dealloc', ptr);
-          callWasmFunction(instance, 'dealloc', reversedPtr);
-          
+          const hash = instance.exports.simple_hash_bytes(0, textBytes.length);
           return new Response(JSON.stringify({ 
-            operation: 'reverse_string', 
-            input: text, 
-            result: reversed,
-            implementation: 'WebAssembly (Static Import)' 
+            operation: 'simple_hash', 
+            input: input, 
+            result: hash
           }), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -162,8 +121,7 @@ export default {
       console.error('WASM Worker Error:', error);
       return new Response(JSON.stringify({ 
         error: 'WASM execution failed', 
-        message: error.message,
-        fallback_available: false
+        message: error.message
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -177,7 +135,7 @@ function getHomePage() {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cloudflare WebAssembly Worker (Static Import)</title>
+    <title>Pure WebAssembly Worker</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         .endpoint { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
@@ -191,18 +149,18 @@ function getHomePage() {
     </style>
 </head>
 <body>
-    <h1>🦀 Cloudflare WebAssembly Worker (Static Import)</h1>
-    <p>This worker uses WebAssembly compiled from Rust with static imports - the recommended approach for Cloudflare Workers.</p>
+    <h1>🦀 Pure WebAssembly Worker</h1>
+    <p>This worker uses only WebAssembly functions with minimal JavaScript glue code.</p>
     
     <div class="endpoint">
         <h3>📊 Available Endpoints:</h3>
         <ul>
-            <li><code>/status</code> - Check WASM implementation status and available functions</li>
-            <li><code>/add?a=5&b=3</code> - Add two numbers using WASM</li>
-            <li><code>/factorial?n=5</code> - Calculate factorial using WASM</li>
-            <li><code>/prime?n=17</code> - Check if number is prime using WASM</li>
-            <li><code>/fibonacci?n=10</code> - Get Fibonacci number using WASM</li>
-            <li><code>/reverse?text=hello</code> - Reverse a string using WASM (if memory functions available)</li>
+            <li><code>/status</code> - Check WASM status and available functions</li>
+            <li><code>/add?a=5&b=3</code> - Add two numbers</li>
+            <li><code>/factorial?n=5</code> - Calculate factorial</li>
+            <li><code>/prime?n=17</code> - Check if number is prime</li>
+            <li><code>/fibonacci?n=10</code> - Get Fibonacci number</li>
+            <li><code>/hash?input=test</code> - Simple hash function</li>
         </ul>
     </div>
     
@@ -213,7 +171,7 @@ function getHomePage() {
         <button class="demo-button" onclick="testEndpoint('/factorial?n=7')">Factorial of 7</button>
         <button class="demo-button" onclick="testEndpoint('/prime?n=97')">Is 97 prime?</button>
         <button class="demo-button" onclick="testEndpoint('/fibonacci?n=15')">15th Fibonacci</button>
-        <button class="demo-button" onclick="testEndpoint('/reverse?text=WebAssembly')">Reverse "WebAssembly"</button>
+        <button class="demo-button" onclick="testEndpoint('/hash?input=WebAssembly')">Hash "WebAssembly"</button>
     </div>
     
     <div id="result"></div>
@@ -237,7 +195,6 @@ function getHomePage() {
             }
         }
         
-        // Auto-load status on page load
         window.addEventListener('load', () => testEndpoint('/status'));
     </script>
 </body>
