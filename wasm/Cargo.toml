@@ -6,8 +6,11 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
-# No dependencies needed for raw WASM exports - better for static imports
+# Dependencies for URL parsing
 [dependencies]
+urlencoding = "2.1"
+
+# No dependencies needed for raw WASM exports - better for static imports
 
 # Tell `rustc` to optimize for small code size.
 [profile.release]
