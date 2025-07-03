@@ -11,10 +11,12 @@
     "preview": "wrangler preview",
     "clean": "rm -rf src/wasm-pkg"
   },
-  "devDependencies": {
-    "wrangler": "^3.0.0"
-  },
-  "keywords": ["cloudflare", "worker", "webassembly", "wasm"],
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "webassembly",
+    "wasm"
+  ],
   "author": "",
   "license": "MIT"
-} 
+}
